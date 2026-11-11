@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f6f3ea">
+<title>오행의집 | 방 꾸미기 게임</title>
+<style>
+:root{color-scheme:light;--ink:#28352b;--paper:#f6f3ea;--green:#304e3b;--line:#e4ded1}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:3px solid #416a9b;outline-offset:2px}
+button:disabled{opacity:.45;cursor:default}
+main{max-width:540px;margin:auto;padding:14px 14px calc(16px + env(safe-area-inset-bottom))}
+h1,h2,p{margin:0}
+h1{font-size:clamp(1.3rem,5vw,1.65rem)}
+header,.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+header{margin-bottom:12px}
+.eyebrow{font-size:.67rem;letter-spacing:.16em;font-weight:800;color:#50634e}
+.btn{border:1px solid var(--line);border-radius:12px;background:#fffdf8;min-height:44px;padding:8px 12px;font-weight:700;font-size:.84rem}
+.primary{background:var(--green);color:white;border-color:var(--green)}
+.goals{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin-bottom:9px}
+.gauge{border:1px solid var(--line);background:#fffdf8;border-radius:12px;padding:6px 2px;min-width:0}
+.gauge b,.gauge small{display:block}
+.gauge small{font-size:.65rem}
+.gauge b{font-size:.98rem}
+.gauge .meter{height:4px;margin:5px 7px;background:#eee9df;border-radius:4px;overflow:hidden;position:relative}
+.meter i,.meter em{position:absolute;top:0;bottom:0}
+.meter i{left:0;background:var(--element)}
+.meter em{border:1px solid #28352b;border-radius:2px}
+.ok{color:#366544}.over{color:#a03f29}
+.board{position:relative;aspect-ratio:400/294;isolation:isolate;background:#eee5d3;border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.scene,.objects{position:absolute;inset:0;width:100%;height:100%}
+.objects{pointer-events:none}
+.scene{display:block}
+.spot{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);min-width:44px;min-height:44px;width:10%;height:14%;padding:0;border:0;border-radius:50%;background:transparent;z-index:1}
+.spot.pick::after,.spot.blocked::after,.spot.current::after{content:"+";display:grid;place-items:center;position:absolute;inset:8px 4px;border:1px dashed #557057;border-radius:50%;background:#fffdf5b5;color:#304e3b;font-weight:800}
+.spot.blocked::after{content:"×";border-color:#9a5144;color:#983f2a;background:#fff2edba}
+.spot.current::after{content:"✓";background:#dbe9cf;border-style:solid}
+.spot.placed{height:19%;transform:translate(-50%,-77%)}
+.status{min-height:43px;padding:7px 2px;font-size:.79rem;color:#4d5d50}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 9px}
+.actions:empty{display:none}
+.actions .btn{flex:1}
+.tabs{display:flex;gap:5px;overflow-x:auto;margin-bottom:6px}
+.tab{min-height:44px;padding:5px 10px;background:transparent;border:0;border-radius:10px;white-space:nowrap;font-size:.78rem;font-weight:700}
+.tab[aria-pressed=true]{background:#e1e9db}
+.shelf{display:flex;gap:8px;overflow-x:auto;padding:3px 2px 8px;scroll-padding:2px}
+.card{flex:0 0 104px;min-height:99px;border:1px solid var(--line);background:#fffdf8;border-radius:14px;padding:5px;text-align:center}
+.card[aria-pressed=true]{border:2px solid var(--green);background:#eef3e8}
+.card svg{display:block;margin:auto;width:45px;height:46px}
+.card b,.card small{display:block;font-size:.7rem}
+.card small{color:#516451;margin-top:2px}
+.footer{display:flex;gap:8px;margin-top:8px}.footer .primary{flex:1}
+.hero{min-height:min(650px,87vh);display:grid;align-content:center;gap:18px}
+.hero h1{font-size:clamp(2.6rem,13vw,4rem);letter-spacing:-.08em}
+.hero p{line-height:1.7;color:#50634e}
+.hero .board{margin-bottom:2px}
+dialog{width:min(440px,calc(100% - 28px));max-height:90dvh;overflow:auto;border:1px solid var(--line);border-radius:20px;background:#fffdf8;color:var(--ink);padding:19px}
+dialog::backdrop{background:#25382ab0}
+dialog h2{font-size:1.25rem;margin-bottom:9px}
+dialog p,dialog li{font-size:.87rem;line-height:1.55}
+dialog ul{padding-left:20px}
+dialog .board{margin:12px 0}
+dialog .actions{margin:12px 0 0}
+.stage-list{display:grid;gap:8px;margin:13px 0}
+.stage-list button{text-align:left}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<section id="home" class="hero">
+  <div><div class="eyebrow">ROOM PUZZLE · 五行</div><h1>오행의집</h1></div>
+  <div id="home-art" class="board" aria-hidden="true"></div>
+  <p>빈 방에 가구와 소품을 하나씩 놓아 보세요.<br>다섯 가지 오행을 맞추면 나만의 방이 완성돼요.</p>
+  <button class="btn primary" id="start">꾸미기 시작</button>
+  <button class="btn" id="choose">공간 고르기</button>
+</section>
+<section id="game" hidden>
+  <header>
+    <button class="btn" id="back" aria-label="홈으로">‹ 홈</button>
+    <div><div class="eyebrow" id="stage-number"></div><h1 id="stage-name"></h1></div>
+    <button class="btn" id="help">도움말</button>
+  </header>
+  <div class="goals" id="goals" aria-label="오행 목표"></div>
+  <div id="room" class="board" role="group" aria-label="방 배치판"></div>
+  <p id="status" class="status" aria-live="polite"></p>
+  <div class="actions" id="actions"></div>
+  <div class="tabs" id="tabs" aria-label="아이템 카테고리"></div>
+  <div class="shelf" id="shelf" aria-label="아이템 목록"></div>
+  <div class="footer">
+    <button class="btn" id="undo">↶ 되돌리기</button>
+    <button class="btn primary" id="check">완성 확인</button>
+  </div>
+</section>
+</main>
+<dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+<script>
+'use strict';
+
+const elements = [
+  ['목','#628657'], ['화','#bc6550'], ['토','#ac824b'], ['금','#75838a'], ['수','#577eab']
+];
+const stages = [
+  {name:'햇살 드는 원룸', goals:[[3,5],[2,4],[2,4],[1,3],[1,3]], required:'plant', condition:'몬스테라를 1개 배치하기', tone:'#efe3ce'},
+  {name:'조용한 작은 서재', goals:[[3,5],[1,2],[3,5],[1,3],[1,3]], required:'desk', condition:'원목 책상을 1개 배치하기', tone:'#dce4d8'}
+];
+// score 배열은 목·화·토·금·수 순서입니다.
+const items = {
+  plant:{name:'몬스테라', category:'식물', place:'floor', size:1, score:[2,0,0,0,0], reason:'잎이 풍성한 식물', art:'<path d="M-11 -18H11L8 -2H-8Z" fill="#b77351"/><path d="M0 -15V-49M0 -27L-15 -40M0 -34L15 -46" stroke="#496847" stroke-width="2"/><ellipse cx="-13" cy="-40" rx="10" ry="6" fill="#6e925a" transform="rotate(26 -13 -40)"/><ellipse cx="12" cy="-45" rx="10" ry="6" fill="#587f53" transform="rotate(-28 12 -45)"/><ellipse cy="-53" rx="6" ry="9" fill="#789b60"/>'},
+  shelf:{name:'원목 선반', category:'가구', place:'floor', size:2, score:[1,0,1,0,0], reason:'나뭇결과 흙빛 원목', art:'<rect x="-29" y="-37" width="58" height="33" rx="3" fill="#af7953"/><path d="M-24 -31H24V-12H-24Z" fill="#765137"/><path d="M-26 -19H26" stroke="#c9986b" stroke-width="4"/><rect x="-33" y="-42" width="66" height="7" rx="2" fill="#d5a779"/><path d="M-24 -6V0M24 -6V0" stroke="#765137" stroke-width="4"/>'},
+  desk:{name:'원목 책상', category:'가구', place:'floor', size:2, score:[1,0,2,0,0], reason:'두꺼운 원목 상판', art:'<path d="M-24 -31V-1M24 -31V-1" stroke="#875d45" stroke-width="5"/><path d="M-32 -35H25L33 -28H-27Z" fill="#d1a378"/><path d="M-27 -28H33V-23H-27Z" fill="#ac7958"/>'},
+  table:{name:'크롬 테이블', category:'가구', place:'floor', size:1, score:[0,0,0,2,0], reason:'은빛 금속 다리', art:'<path d="M-13 -21L-10 -2M13 -21L10 -2M0 -21V-2" stroke="#647a80" stroke-width="3"/><ellipse cy="-24" rx="20" ry="6" fill="#a9bec0"/><ellipse cy="-26" rx="18" ry="4" fill="#dce5df"/>'},
+  lamp:{name:'무드등', category:'조명', place:'top', score:[0,2,0,0,0], reason:'따뜻한 빛', art:'<path d="M0 -4V-20M-6 -4H6" stroke="#896347" stroke-width="3"/><path d="M-7 -31H7L12 -15H-12Z" fill="#e1a75d"/>'},
+  sconce:{name:'금속 벽등', category:'조명', place:'wall', score:[0,1,0,1,0], reason:'은빛 금속과 은은한 빛', art:'<circle cy="-7" r="8" fill="#9aaba9"/><path d="M-7 -17H7L11 -7H-11Z" fill="#e1c085"/>'},
+  vase:{name:'테라코타 화병', category:'소품', place:'top', score:[0,0,2,0,0], reason:'구운 흙의 질감', art:'<path d="M-4 -23H4V-17C15 -12 11 0 0 0S-15 -12 -4 -17Z" fill="#b97052"/><path d="M-7 -8H7" stroke="#d79470" stroke-width="2"/>'},
+  picture:{name:'블루 유리 액자', category:'소품', place:'wall', score:[0,0,0,1,2], reason:'푸른 유리와 금속 프레임', art:'<rect x="-14" y="-30" width="28" height="30" rx="2" fill="#a5aca4"/><rect x="-11" y="-27" width="22" height="24" fill="#e9ece1"/><path d="M-11 -10Q-3 -22 3 -13T11 -17V-3H-11Z" fill="#6c92ad"/>'},
+  rug:{name:'모래빛 러그', category:'소품', place:'floor', size:1, score:[0,0,2,0,0], reason:'모래를 닮은 색', art:'<path d="M-24 -4L-15 -19H23L16 -4Z" fill="#d6b58b"/><path d="M-17 -8H15M-13 -14H19" stroke="#f5e2c5" stroke-width="2"/>'}
+};
+
+const $ = id => document.getElementById(id);
+const saveKey = 'ohaeng-room-puzzle-v1';
+const cols = 4;
+const rows = 3;
+const doorway = 'f-3-0';
+const wallSpots = [
+  {key:'w-0', x:42, y:120, label:'왼쪽 벽'},
+  {key:'w-1', x:249, y:111, label:'가운데 벽'},
+  {key:'w-2', x:308, y:110, label:'오른쪽 벽'}
+];
+const floorSpots = Array.from({length:cols * rows}, (_, index) => {
+  const c = index % cols, r = Math.floor(index / cols);
+  return {key:`f-${c}-${r}`, c, r, x:104 + c * 75 - r * 18, y:174 + c * 3 + r * 37, label:`바닥 ${r + 1}행 ${c + 1}열`};
+});
+const fixedSpots = [...wallSpots, ...floorSpots];
+const catalog = Object.entries(items);
+let saved = {stage:0, rooms:[[],[]], completed:[]};
+try {
+  const stored = JSON.parse(localStorage.getItem(saveKey));
+  if (stored && stages[stored.stage] && Array.isArray(stored.rooms) && Array.isArray(stored.completed)) saved = stored;
+} catch {}
+let stageIndex = saved.stage;
+let placements = [];
+let history = [];
+let mode = null;
+let category = '전체';
+let message = '';
+
+function persist() {
+  try { localStorage.setItem(saveKey, JSON.stringify(saved)); } catch {}
+}
+function stage() { return stages[stageIndex]; }
+function sum(list = placements) {
+  return elements.map((_, index) => list.reduce((total, entry) => total + items[entry.id].score[index], 0));
+}
+function effect(item) {
+  return item.score.map((value, index) => value ? `${elements[index][0]} +${value}` : '').filter(Boolean).join(' · ');
+}
+function footprint(id, key, turned) {
+  const spot = floorSpots.find(point => point.key === key);
+  if (!spot) return [];
+  return Array.from({length:items[id].size}, (_, offset) =>
+    `f-${spot.c + (turned ? 0 : offset)}-${spot.r + (turned ? offset : 0)}`);
+}
+function allSpots(list) {
+  const shelf = list.find(entry => entry.id === 'shelf');
+  if (!shelf) return fixedSpots;
+  const base = anchor(shelf, list);
+  return [...fixedSpots,
+    {key:'t-0', x:base.x - 17, y:base.y - 43, label:'선반 왼쪽'},
+    {key:'t-1', x:base.x + 17, y:base.y - 43, label:'선반 오른쪽'}];
+}
+function anchor(entry, list) {
+  const point = fixedSpots.find(spot => spot.key === entry.key) ?? allSpots(list).find(spot => spot.key === entry.key);
+  if (items[entry.id].place !== 'floor') return point;
+  const occupied = footprint(entry.id, entry.key, entry.turned).map(key => floorSpots.find(spot => spot.key === key));
+  return {
+    x:occupied.reduce((total, spot) => total + spot.x, 0) / occupied.length,
+    y:occupied.reduce((total, spot) => total + spot.y, 0) / occupied.length
+  };
+}
+function rejection(id, key, turned, list) {
+  const item = items[id];
+  const type = key.startsWith('f-') ? 'floor' : key.startsWith('w-') ? 'wall' : 'top';
+  if (item.place !== type) return '이 아이템은 지정된 위치에 놓아 주세요.';
+  if (!allSpots(list).some(spot => spot.key === key)) return '먼저 원목 선반을 배치해 주세요.';
+  if (type !== 'floor') return list.some(entry => entry.key === key) ? '이미 소품이 놓여 있어요.' : '';
+  const occupied = footprint(id, key, turned);
+  if (occupied.some(k => !floorSpots.some(spot => spot.key === k))) return '가구가 방의 경계를 벗어나요.';
+  if (occupied.includes(doorway)) return '출입구 앞은 비워 주세요.';
+  const collision = list.find(entry => footprint(entry.id, entry.key, entry.turned).some(k => occupied.includes(k)));
+  return collision ? `${items[collision.id].name}과(와) 겹쳐요.` : '';
+}
+function wallAndFloor(tone) {
+  return `<svg class="scene" viewBox="0 0 400 294" aria-hidden="true">
+    <rect width="400" height="294" fill="#e9e1d2"/>
+    <path d="M17 39L80 68V152L17 256Z" fill="#d4c5ae"/>
+    <path d="M80 68L380 38V158L80 152Z" fill="${tone}"/>
+    <path d="M17 256L80 152L380 158L369 277L47 281Z" fill="#d9b489"/>
+    <path d="M61 219L373 232M42 248L371 257M78 188L377 198M136 154L88 280M187 155L157 279M238 156L226 279M289 157L295 278M340 157L348 278" fill="none" stroke="#c89e74" stroke-width="1"/>
+    <path d="M17 39L80 68L380 38M80 68V152L380 158" fill="none" stroke="#bbae99" stroke-width="2"/>
+    <path d="M108 79L207 69V127L108 131Z" fill="#ad9477" stroke="#fff9eb" stroke-width="5"/>
+    <path d="M112 82L203 73V123L112 127Z" fill="#c9dfdf"/>
+    <path d="M112 109L144 98L167 111L203 97V123L112 127Z" fill="#9db89d"/>
+    <path d="M155 78V126M109 103L205 98" stroke="#fff9eb" stroke-width="3"/>
+    <path d="M338 77L369 73V157L338 156Z" fill="#ad8467" stroke="#f7e7d4" stroke-width="3"/>
+    <circle cx="346" cy="120" r="2" fill="#f1d39d"/>
+    <path d="M123 161L189 162L125 236L57 233Z" fill="#fff2c9" opacity=".29"/>
+  </svg>`;
+}
+function drawRoom(list, tone, preview) {
+  const drawings = list.map(entry => ({entry, point:anchor(entry,list), ghost:false}));
+  if (preview) drawings.push({entry:preview, point:anchor(preview,list), ghost:true});
+  // 벽, 바닥, 선반 위 소품 순으로 그리고 바닥은 뒤쪽부터 겹칩니다.
+  const layer = entry => ['wall','floor','top'].indexOf(items[entry.id].place);
+  drawings.sort((a,b) => layer(a.entry) - layer(b.entry) || a.point.y - b.point.y);
+  return wallAndFloor(tone) + `<svg class="objects" viewBox="0 0 400 294" aria-hidden="true">${drawings.map(({entry,point,ghost}) => {
+    const rotated = entry.turned && items[entry.id].size === 2;
+    const selected = mode?.existing === entry.id || mode?.edit === entry.id;
+    return `<g transform="translate(${point.x} ${point.y})" opacity="${ghost ? '.48' : '1'}">
+      ${items[entry.id].place === 'floor' ? `<ellipse rx="${items[entry.id].size === 2 ? 30 : 15}" ry="5" fill="#725338" opacity=".19"/>` : ''}
+      <g transform="${rotated ? 'skewY(-24) scale(.65 1)' : ''}">${items[entry.id].art}</g>
+      ${selected && !ghost ? '<path d="M-12 4H12" stroke="#36583c" stroke-width="2"/>' : ''}
+    </g>`;
+  }).join('')}</svg>`;
+}
+function button(label, action, extra = '') {
+  return `<button type="button" class="btn ${extra}" data-action="${action}">${label}</button>`;
+}
+function renderGoals() {
+  const current = sum();
+  const projected = mode?.id && !mode.existing && !mode.edit ? sum([...placements,{id:mode.id}]) : current;
+  $('goals').innerHTML = elements.map(([name,color], index) => {
+    const [low,high] = stage().goals[index];
+    const value = current[index];
+    const label = value < low ? `${low-value} 부족` : value > high ? `${value-high} 초과` : '충족';
+    const scale = Math.max(high+2,value,projected[index]);
+    return `<button class="gauge" data-element="${index}" style="--element:${color}" aria-label="${name} ${value}, 목표 ${low}에서 ${high}, ${label}">
+      <small>${name} · ${low}–${high}</small><b>${value}${projected[index] === value ? '' : `→${projected[index]}`}</b>
+      <div class="meter" aria-hidden="true"><i style="width:${value/scale*100}%"></i><em style="left:${low/scale*100}%;width:${(high-low)/scale*100}%"></em></div>
+      <small class="${value > high ? 'over' : value >= low ? 'ok' : ''}">${label}</small></button>`;
+  }).join('');
+}
+function renderBoard() {
+  const picking = mode?.id && !mode.existing;
+  const preview = picking && mode.key ? {id:mode.id,key:mode.key,turned:mode.turned} : null;
+  const list = picking && mode.edit ? placements.filter(entry => entry.id !== mode.edit) : placements;
+  // 이동 중에는 선반과 그 위 소품을 함께 미리 보여줍니다.
+  let visible = list;
+  if (picking && mode.edit === 'shelf') visible = list.filter(entry => !entry.key.startsWith('t-'));
+  if (preview?.id === 'shelf' && mode.edit) {
+    visible = [...visible, preview, ...placements.filter(entry => entry.key.startsWith('t-'))];
+  }
+  const shelfPreview = preview?.id === 'shelf' && mode.edit;
+  $('room').innerHTML = drawRoom(visible, stage().tone, shelfPreview ? null : preview);
+  const spots = picking
+    ? allSpots(list).filter(spot => spot.key[0] === {floor:'f',wall:'w',top:'t'}[items[mode.id].place])
+    : placements.map(entry => ({...anchor(entry,placements), key:entry.key, id:entry.id, label:items[entry.id].name}));
+  $('room').insertAdjacentHTML('beforeend', spots.map(spot => {
+    const blocked = picking && rejection(mode.id,spot.key,mode.turned,list);
+    const state = !picking ? 'placed' : blocked ? 'blocked' : mode.key === spot.key ? 'current' : 'pick';
+    return `<button class="spot ${state}" style="--x:${spot.x/4}%;--y:${spot.y/294*100}%" data-spot="${spot.key}" aria-label="${spot.label}${blocked ? `, ${blocked}` : ''}"></button>`;
+  }).join(''));
+}
+function renderTools() {
+  const existing = mode?.existing && placements.find(entry => entry.id === mode.existing);
+  let actions = '';
+  if (existing) {
+    actions = button('이동','move') + (items[existing.id].size === 2 ? button('회전','rotate-existing') : '') + button('빼기','remove') + button('닫기','cancel');
+  } else if (mode) {
+    actions = (items[mode.id].size === 2 ? button('회전','rotate-preview') : '') + button(mode.edit ? '이동 확정' : '배치하기','place','primary') + button('닫기','cancel');
+  }
+  $('actions').innerHTML = actions;
+  const placeButton = $('actions').querySelector('[data-action="place"]');
+  if (placeButton) placeButton.disabled = !mode.key;
+  const item = mode && items[mode.id ?? mode.existing];
+  const defaultStatus = placements.length ? '방에 놓인 아이템을 누르면 편집할 수 있어요.' : '아래에서 아이템을 골라 빈 방을 꾸며 보세요.';
+  $('status').textContent = message || (item ? `${item.name} · ${effect(item)} · ${item.reason}` : defaultStatus);
+  $('undo').disabled = history.length === 0;
+}
+function renderCatalog() {
+  const scroll = $('shelf').scrollLeft;
+  $('tabs').innerHTML = ['전체','가구','조명','식물','소품'].map(name =>
+    `<button class="tab" data-category="${name}" aria-pressed="${name === category}">${name}</button>`).join('');
+  $('shelf').innerHTML = catalog.filter(([,item]) => category === '전체' || item.category === category).map(([id,item]) => {
+    const used = placements.some(entry => entry.id === id);
+    return `<button class="card" data-item="${id}" aria-pressed="${mode?.id === id && !mode.edit}" ${used ? 'disabled' : ''}>
+      <svg viewBox="-36 -64 72 69" aria-hidden="true">${item.art}</svg><b>${item.name}</b><small>${used ? '배치됨' : effect(item)}</small></button>`;
+  }).join('');
+  $('shelf').scrollLeft = scroll;
+}
+function render() {
+  $('stage-number').textContent = `STAGE 0${stageIndex+1}`;
+  $('stage-name').textContent = stage().name;
+  renderGoals();
+  renderBoard();
+  renderTools();
+  renderCatalog();
+}
+function commit(next, status) {
+  history.push(placements);
+  placements = next;
+  saved.rooms[stageIndex] = placements;
+  persist();
+  mode = null;
+  message = status;
+  render();
+}
+function openStage(index) {
+  stageIndex = index;
+  saved.stage = index;
+  placements = saved.rooms[index] ?? [];
+  mode = null;
+  history = [];
+  category = '전체';
+  message = '';
+  persist();
+  $('home').hidden = true;
+  $('game').hidden = false;
+  $('shelf').scrollLeft = 0;
+  render();
+  $('back').focus();
+}
+function showHome() {
+  $('game').hidden = true;
+  $('home').hidden = false;
+  $('start').textContent = saved.rooms[saved.stage]?.length ? '이어서 꾸미기' : '꾸미기 시작';
+  $('start').focus();
+}
+function modal(title, content) {
+  $('dialog').innerHTML = `<h2 id="dialog-title">${title}</h2>${content}`;
+  $('dialog').showModal();
+}
+function evaluate() {
+  const values = sum();
+  const checks = stage().goals.map(([low,high], i) => ({
+    ok:values[i] >= low && values[i] <= high,
+    text:`${elements[i][0]} ${values[i]} / 목표 ${low}–${high}${values[i] < low ? ` · ${low-values[i]} 부족` : values[i] > high ? ` · ${values[i]-high} 초과` : ''}`
+  }));
+  checks.push({ok:placements.some(entry => entry.id === stage().required),text:stage().condition});
+  checks.push({ok:!placements.some(entry => footprint(entry.id,entry.key,entry.turned).includes(doorway)),text:'출입구 앞 비우기'});
+  return checks;
+}
+function showResult() {
+  const checks = evaluate();
+  const count = checks.filter(check => check.ok).length;
+  const win = count === checks.length;
+  if (win && !saved.completed.includes(stageIndex)) {
+    saved.completed.push(stageIndex);
+    persist();
+  }
+  const board = drawRoom(placements, stage().tone);
+  modal(win ? '공간 완성!' : '조금만 더 꾸며 볼까요?',
+    `<p>${checks.length}개 조건 중 ${count}개 충족</p><div class="board">${board}</div>
+    <ul>${checks.map(check => `<li class="${check.ok ? 'ok' : 'over'}">${check.ok ? '✓' : '○'} ${check.text}</li>`).join('')}</ul>
+    <div class="actions">${button('계속 꾸미기','close')}${win ? button('빈 방부터 다시','restart') : ''}
+    ${win && stageIndex + 1 < stages.length ? button('다음 공간','next','primary') : ''}</div>`);
+}
+function editAction(action) {
+  const existing = placements.find(entry => entry.id === mode?.existing);
+  if (action === 'cancel') {
+    mode = null;
+    message = '';
+  } else if (action === 'move' && existing) {
+    mode = {id:existing.id,edit:existing.id,turned:existing.turned,key:existing.key};
+    message = '옮길 자리를 누른 뒤 이동을 확정하세요.';
+  } else if (action === 'remove' && existing) {
+    const next = placements.filter(entry => entry.id !== existing.id && !(existing.id === 'shelf' && entry.key.startsWith('t-')));
+    const attached = placements.length - next.length - 1;
+    commit(next, attached ? '선반과 위에 있던 소품을 함께 뺐어요.' : `${items[existing.id].name}을(를) 뺐어요.`);
+    return;
+  } else if (action === 'rotate-existing' && existing) {
+    const rest = placements.filter(entry => entry !== existing);
+    const error = rejection(existing.id,existing.key,!existing.turned,rest);
+    if (!error) {
+      commit(placements.map(entry => entry === existing ? {...entry,turned:!entry.turned} : entry), '가구를 회전했어요.');
+      return;
+    }
+    message = error;
+  } else if (action === 'rotate-preview' && mode) {
+    mode.turned = !mode.turned;
+    const rest = placements.filter(entry => entry.id !== mode.edit);
+    message = mode.key ? rejection(mode.id,mode.key,mode.turned,rest) : '';
+    if (message) mode.key = null;
+  } else if (action === 'place' && mode?.key) {
+    const rest = placements.filter(entry => entry.id !== mode.edit);
+    const error = rejection(mode.id,mode.key,mode.turned,rest);
+    if (!error) {
+      commit([...rest,{id:mode.id,key:mode.key,turned:mode.turned}], mode.edit ? '새 자리로 옮겼어요.' : `${items[mode.id].name} 배치 · ${effect(items[mode.id])}`);
+      return;
+    }
+    message = error;
+  }
+  render();
+}
+
+$('room').addEventListener('click', event => {
+  const key = event.target.closest('[data-spot]')?.dataset.spot;
+  if (!key) return;
+  if (mode?.id && !mode.existing) {
+    const rest = placements.filter(entry => entry.id !== mode.edit);
+    message = rejection(mode.id,key,mode.turned,rest);
+    mode.key = message ? null : key;
+    if (!message) message = '미리보기 중이에요. 이 자리에 둘까요?';
+  } else {
+    const entry = placements.find(placed => placed.key === key);
+    if (!entry) return;
+    mode = {existing:entry.id};
+    message = '';
+  }
+  render();
+  const matching = [...$('room').querySelectorAll('[data-spot]')].find(spot => spot.dataset.spot === key);
+  matching?.focus();
+});
+$('actions').addEventListener('click', event => {
+  const action = event.target.closest('[data-action]')?.dataset.action;
+  if (action) {
+    editAction(action);
+    const target = $('actions').querySelector(`[data-action="${action}"]:not(:disabled)`) ??
+      $('room').querySelector('.spot') ?? $('shelf').querySelector('.card:not(:disabled)');
+    target?.focus();
+  }
+});
+$('shelf').addEventListener('click', event => {
+  const id = event.target.closest('[data-item]')?.dataset.item;
+  if (!id) return;
+  mode = {id,turned:false,key:null};
+  message = items[id].place === 'top' && !placements.some(entry => entry.id === 'shelf')
+    ? '이 소품을 놓으려면 먼저 원목 선반을 배치하세요.' : '';
+  render();
+  $('shelf').querySelector(`[data-item="${id}"]`)?.focus();
+});
+$('tabs').addEventListener('click', event => {
+  const name = event.target.closest('[data-category]')?.dataset.category;
+  if (!name) return;
+  category = name;
+  $('shelf').scrollLeft = 0;
+  renderCatalog();
+  $('tabs').querySelector('[aria-pressed=true]')?.focus();
+});
+$('goals').addEventListener('click', event => {
+  const target = event.target.closest('[data-element]');
+  if (!target) return;
+  const i = Number(target.dataset.element);
+  const contributors = placements.filter(entry => items[entry.id].score[i]);
+  modal(`${elements[i][0]} · 현재 ${sum()[i]}점`,
+    `<p>목표 ${stage().goals[i].join('–')}점</p>${contributors.length
+      ? `<ul>${contributors.map(entry => `<li>${items[entry.id].name} +${items[entry.id].score[i]}</li>`).join('')}</ul>`
+      : '<p>이 오행을 올리는 아이템을 놓으면 여기에 표시돼요.</p>'}<div class="actions">${button('닫기','close')}</div>`);
+});
+$('help').onclick = () => modal('꾸미는 방법', `<p>아이템을 고르고 방에 표시된 자리를 누른 뒤 배치를 확정하세요. 배치한 가구나 소품을 누르면 다시 편집할 수 있어요.</p>
+  <ul><li>오행 다섯 가지를 각각 목표 범위 안에 맞추기</li><li>${stage().condition}</li><li>출입구 앞 비우기</li></ul><div class="actions">${button('닫기','close')}</div>`);
+$('undo').onclick = () => {
+  if (!history.length) return;
+  placements = history.pop();
+  saved.rooms[stageIndex] = placements;
+  persist();
+  mode = null;
+  message = '마지막 배치를 되돌렸어요.';
+  render();
+};
+$('check').onclick = showResult;
+$('back').onclick = showHome;
+$('start').onclick = () => openStage(saved.stage);
+$('choose').onclick = () => modal('공간 고르기', `<div class="stage-list">${stages.map((entry,i) =>
+  button(`0${i+1} · ${entry.name}${saved.completed.includes(i) ? ' ✓ 완성' : ''}`,`stage-${i}`)).join('')}</div>${button('닫기','close')}`);
+$('dialog').addEventListener('click', event => {
+  const action = event.target.closest('[data-action]')?.dataset.action;
+  if (!action) return;
+  if (action === 'restart') {
+    $('dialog').close();
+    commit([], '빈 방부터 다시 꾸며 보세요. 되돌리기로 이전 배치를 복구할 수 있어요.');
+    return;
+  }
+  $('dialog').close();
+  if (action === 'next') openStage(stageIndex+1);
+  if (action.startsWith('stage-')) openStage(Number(action.slice(6)));
+});
+$('home-art').innerHTML = drawRoom([
+  {id:'shelf',key:'f-1-0'}, {id:'plant',key:'f-0-1'}, {id:'table',key:'f-2-2'},
+  {id:'lamp',key:'t-0'}, {id:'vase',key:'t-1'}, {id:'picture',key:'w-1'}
+],stages[0].tone);
+showHome();
+</script>
+</body>
+</html>
