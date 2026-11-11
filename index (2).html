@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f5f1e8">
+<title>오행의집 | 방 꾸미기</title>
+<style>
+:root{color-scheme:light;--ink:#29382c;--paper:#f5f1e8;--green:#315940;--line:#e2dacb}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#fffaf0,var(--paper) 65%);color:var(--ink);font-family:system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:3px solid #4777a4;outline-offset:2px}
+button:disabled{opacity:.4;cursor:default}
+main{width:min(100%,580px);margin:auto;padding:12px 12px calc(16px + env(safe-area-inset-bottom))}
+h1,h2,p{margin:0}
+[hidden]{display:none!important}
+.btn{padding:8px 13px;min-height:44px;background:#fffdf7;border:1px solid var(--line);border-radius:13px;font-weight:700}
+.primary{background:var(--green);color:white;border-color:var(--green)}
+.icon{width:44px;padding:0;font-size:1.25rem}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.intro{min-height:85svh;display:grid;align-content:center;gap:18px;text-align:center}
+.intro h1{font-family:"Nanum Myeongjo",Georgia,serif;font-size:clamp(2.9rem,13vw,4.7rem);letter-spacing:-.1em}
+.intro p,.muted{color:#566654;font-size:.87rem}
+.intro .btn{justify-self:center;min-width:155px}
+.board{position:relative;aspect-ratio:400/278;border:1px solid var(--line);border-radius:19px;overflow:hidden;background:#eee5d5;isolation:isolate}
+.board svg,.hits{position:absolute;inset:0;width:100%;height:100%}
+.board svg{pointer-events:none}
+.board .preview{animation:appear .28s ease-out}
+@keyframes appear{from{opacity:0}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important}}
+#game header{margin-bottom:8px}
+#game h1{font-size:clamp(1rem,4.8vw,1.42rem)}
+#homes h1{font-size:1.4rem}
+.home-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+.home-card{display:grid;gap:6px;background:#fffdf7;border:1px solid var(--line);border-radius:15px;padding:7px;text-align:left}
+.home-card .board{border-radius:10px}
+.home-card b,.home-card small{padding:0 3px}
+.home-card small{color:#596658}
+.goals{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin-bottom:8px}
+.gauge{min-width:0;padding:5px 1px;border-radius:10px;border:1px solid var(--line);background:#fffdf8;min-height:47px}
+.gauge small,.gauge b{display:block;font-size:.7rem}
+.gauge b{font-size:.87rem}
+.gauge i{display:inline-block;width:7px;height:7px;background:var(--element);border-radius:50%;margin-right:3px}
+.gauge .met{color:#326244}.gauge .over{color:#9d4835}
+#room{touch-action:none}
+.hit{position:absolute;transform:translate(-50%,-50%);width:var(--w);height:var(--h);min-width:24px;min-height:24px;border:0;background:transparent;border-radius:8px;padding:0;touch-action:none}
+.hit:focus-visible{background:#ffffff40}
+.confirm{position:absolute;z-index:5;transform:translate(-50%,-50%);width:45px;height:45px;border:2px solid #fff;border-radius:50%;background:#27824d;color:#fff;box-shadow:0 3px 10px #263a3c50;font-size:1.55rem;font-weight:800;padding:0}
+#edit{display:flex;align-items:center;gap:5px;min-height:47px}
+#edit .btn{min-height:39px;width:39px}
+#status{flex:1;font-size:.75rem;line-height:1.35;color:#4b5b4e}
+.catalog-nav{margin:2px 0 4px}
+.catalog-nav .btn{min-height:36px;width:38px}
+#filters{display:flex;gap:2px;overflow:auto;scrollbar-width:none}
+.filter{min-width:36px;min-height:38px;border:0;border-radius:9px;background:transparent;font-weight:700;padding:0 5px}
+.filter[aria-pressed=true]{background:#dce8d7}
+#tray{display:flex;gap:7px;overflow:auto;padding:4px 3px 7px;scrollbar-color:#a8b19d transparent;scrollbar-width:thin}
+.item{flex:0 0 78px;height:79px;border:1px solid var(--line);border-radius:12px;background:#fffdf7;position:relative;padding:1px;touch-action:none;user-select:none;cursor:grab}
+.item svg{width:60px;height:54px;display:block;margin:auto;pointer-events:none}
+.item span{display:block;font-size:.63rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item[aria-pressed=true]{background:#e2eddf;border-color:#477052}
+.item i{position:absolute;top:6px;right:6px;background:var(--dot);width:7px;height:7px;border-radius:50%}
+.footer{margin-top:6px}.footer .primary{flex:1}
+.drag-float{position:fixed;z-index:10;width:73px;height:70px;pointer-events:none;transform:translate(-50%,-85%);filter:drop-shadow(0 4px 4px #4e493f45)}
+dialog{width:min(440px,calc(100% - 24px));max-height:90dvh;overflow:auto;border:1px solid var(--line);border-radius:18px;background:#fffdf7;color:var(--ink);padding:16px}
+dialog::backdrop{background:#26362a99}
+dialog h2{margin-bottom:8px}
+dialog p,dialog li{font-size:.87rem;line-height:1.55}
+dialog .board{margin:8px 0}
+</style>
+</head>
+<body>
+<main id="app">
+<section id="intro" class="intro">
+  <h1>오행의집</h1>
+  <div id="intro-art" class="board" aria-hidden="true"></div>
+  <p>다섯 가지 기운으로 나만의 집을 꾸며요.</p>
+  <button class="btn primary" id="start">시작하기</button>
+</section>
+<section id="homes" hidden>
+  <div class="row"><button class="btn icon" id="intro-back" aria-label="시작 화면">‹</button><h1>어느 집을 꾸밀까요?</h1><span style="width:44px"></span></div>
+  <div class="home-list" id="home-list"></div>
+</section>
+<section id="game" hidden>
+  <header class="row"><button class="btn icon" id="back" aria-label="집 고르기">‹</button><h1 id="stage-name"></h1><button class="btn icon" id="help" aria-label="도움말">?</button></header>
+  <div class="goals" id="goals" aria-label="오행 목표"></div>
+  <div class="board" id="room" aria-label="가구 배치 공간"></div>
+  <div id="edit">
+    <p id="status" role="status"></p>
+    <button class="btn icon" id="rotate" aria-label="가구 회전" title="회전" hidden>↻</button>
+    <button class="btn icon" id="remove" aria-label="가구 빼기" title="가구 빼기" hidden>−</button>
+    <button class="btn icon" id="cancel" aria-label="미리보기 닫기" title="닫기" hidden>×</button>
+  </div>
+  <div class="row catalog-nav">
+    <button class="btn icon" id="prev" aria-label="이전 아이템">‹</button>
+    <div id="filters" aria-label="오행 필터"></div>
+    <button class="btn icon" id="next" aria-label="다음 아이템">›</button>
+  </div>
+  <div id="tray" aria-label="가구와 소품"></div>
+  <div class="row footer"><button class="btn icon" id="undo" aria-label="되돌리기" title="되돌리기">↶</button><button class="btn primary" id="check">완성 확인</button></div>
+</section>
+<div id="float" class="drag-float" hidden aria-hidden="true"></div>
+</main>
+<dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+<script>
+'use strict';
+const elements = [
+  ['목','#628657'], ['화','#bc6550'], ['토','#ac824b'], ['금','#75838a'], ['수','#577eab']
+];
+const items = {
+  plant:{name:'몬스테라', category:'식물', place:'floor', size:1, score:[2,0,0,0,0], reason:'잎이 풍성한 식물', art:'<path d="M-11 -18H11L8 -2H-8Z" fill="#b77351"/><path d="M0 -15V-49M0 -27L-15 -40M0 -34L15 -46" stroke="#496847" stroke-width="2"/><ellipse cx="-13" cy="-40" rx="10" ry="6" fill="#6e925a" transform="rotate(26 -13 -40)"/><ellipse cx="12" cy="-45" rx="10" ry="6" fill="#587f53" transform="rotate(-28 12 -45)"/><ellipse cy="-53" rx="6" ry="9" fill="#789b60"/>'},
+  shelf:{name:'원목 선반', category:'가구', place:'floor', size:2, score:[1,0,1,0,0], reason:'나뭇결과 흙빛 원목', art:'<rect x="-29" y="-37" width="58" height="33" rx="3" fill="#af7953"/><path d="M-24 -31H24V-12H-24Z" fill="#765137"/><path d="M-26 -19H26" stroke="#c9986b" stroke-width="4"/><rect x="-33" y="-42" width="66" height="7" rx="2" fill="#d5a779"/><path d="M-24 -6V0M24 -6V0" stroke="#765137" stroke-width="4"/>'},
+  desk:{name:'원목 책상', category:'가구', place:'floor', size:2, score:[1,0,2,0,0], reason:'두꺼운 원목 상판', art:'<path d="M-24 -31V-1M24 -31V-1" stroke="#875d45" stroke-width="5"/><path d="M-32 -35H25L33 -28H-27Z" fill="#d1a378"/><path d="M-27 -28H33V-23H-27Z" fill="#ac7958"/>'},
+  table:{name:'크롬 테이블', category:'가구', place:'floor', size:1, score:[0,0,0,2,0], reason:'은빛 금속 다리', art:'<path d="M-13 -21L-10 -2M13 -21L10 -2M0 -21V-2" stroke="#647a80" stroke-width="3"/><ellipse cy="-24" rx="20" ry="6" fill="#a9bec0"/><ellipse cy="-26" rx="18" ry="4" fill="#dce5df"/>'},
+  lamp:{name:'무드등', category:'조명', place:'top', score:[0,2,0,0,0], reason:'따뜻한 빛', art:'<path d="M0 -4V-20M-6 -4H6" stroke="#896347" stroke-width="3"/><path d="M-7 -31H7L12 -15H-12Z" fill="#e1a75d"/>'},
+  sconce:{name:'금속 벽등', category:'조명', place:'wall', score:[0,1,0,1,0], reason:'은빛 금속과 은은한 빛', art:'<circle cy="-7" r="8" fill="#9aaba9"/><path d="M-7 -17H7L11 -7H-11Z" fill="#e1c085"/>'},
+  vase:{name:'테라코타 화병', category:'소품', place:'top', score:[0,0,2,0,0], reason:'구운 흙의 질감', art:'<path d="M-4 -23H4V-17C15 -12 11 0 0 0S-15 -12 -4 -17Z" fill="#b97052"/><path d="M-7 -8H7" stroke="#d79470" stroke-width="2"/>'},
+  picture:{name:'블루 유리 액자', category:'소품', place:'wall', score:[0,0,0,1,2], reason:'푸른 유리와 금속 프레임', art:'<rect x="-14" y="-30" width="28" height="30" rx="2" fill="#a5aca4"/><rect x="-11" y="-27" width="22" height="24" fill="#e9ece1"/><path d="M-11 -10Q-3 -22 3 -13T11 -17V-3H-11Z" fill="#6c92ad"/>'},
+  rug:{name:'모래빛 러그', category:'소품', place:'floor', size:1, score:[0,0,2,0,0], reason:'모래를 닮은 색', art:'<path d="M-24 -4L-15 -19H23L16 -4Z" fill="#d6b58b"/><path d="M-17 -8H15M-13 -14H19" stroke="#f5e2c5" stroke-width="2"/>'}
+};
+
+const houses = [
+  {name:'숲빛 원목집', element:0, layout:'창가가 넓은 원목집', wall:'#e7e9d6', side:'#bfcbae', floor:'#d5af81', outside:'#91b595', cols:5, rows:4, door:4, windows:[114,205], opening:3},
+  {name:'노을 다락집', element:1, layout:'낮은 지붕의 다락방', wall:'#f0d9c8', side:'#d2a998', floor:'#c89375', outside:'#e7ae85', cols:4, rows:4, door:3, windows:[147], opening:2},
+  {name:'흙빛 마당집', element:2, layout:'가로로 넓은 흙빛 집', wall:'#eaddc1', side:'#cdbc98', floor:'#d4b38a', outside:'#acb581', cols:6, rows:3, door:5, windows:[116,205], opening:2},
+  {name:'은빛 스튜디오', element:3, layout:'큰 창이 있는 작업실', wall:'#e3e8e8', side:'#bac7cc', floor:'#c4bcb0', outside:'#9ab4c4', cols:5, rows:4, door:4, windows:[126], opening:4},
+  {name:'물결 호숫집', element:4, layout:'안쪽으로 깊은 호숫집', wall:'#dce9ed', side:'#adc5ce', floor:'#c4a892', outside:'#83b6c3', cols:4, rows:5, door:3, windows:[109,201], opening:3}
+].map(house => ({...house, goals:elements.map((_,index) => index === house.element ? [4,7] : [1,4])}));
+
+// 가구의 가로·세로 칸 수와 장식물의 표면을 함께 정의합니다.
+const rect = (x,y,w,h,fill,r=3) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${fill}"/>`;
+const oval = (x,y,rx,ry,fill) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${fill}"/>`;
+const line = (d,color,width=2) => `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round"/>`;
+const art = {
+  chair:(c,a) => line('M-14 -18V0M14 -18V0','#765943',4)+rect(-18,-40,36,25,c,7)+rect(-19,-18,38,10,a,5),
+  sofa:(c,a) => rect(-34,-43,68,35,c,8)+rect(-36,-24,72,19,a,6)+rect(-35,-33,9,23,c,5)+rect(26,-33,9,23,c,5)+line('M-26 -5V0M26 -5V0','#745b49',4)+line('M0 -22V-12',c),
+  bench:(c,a) => line('M-23 -12V0M23 -12V0',a,4)+rect(-29,-21,58,12,c,4),
+  cabinet:(c,a) => rect(-28,-47,56,46,c,4)+rect(-25,-43,23,36,a)+rect(2,-43,23,36,a)+line('M-6 -28H-4M4 -28H6','#6e5d4f',3),
+  tall:(c,a) => rect(-22,-64,44,63,c,4)+rect(-17,-58,34,51,a)+line('M-16 -44H16M-16 -27H16',c,4),
+  bed:(c,a) => rect(-32,-57,64,43,c,6)+rect(-34,-43,68,41,a,6)+rect(-27,-41,25,14,'#fff2dd',4)+rect(2,-41,25,14,'#fff2dd',4)+rect(-34,-25,68,19,c,5),
+  table:(c,a) => line('M-22 -23V-1M22 -23V-1',a,4)+oval(0,-24,29,8,c),
+  plant:(c,a) => `<path d="M-12 -18H12L8 0H-8Z" fill="${a}"/>`+line('M0 -18V-51M0 -27L-13 -38M0 -35L15 -43',c,2)+oval(-14,-39,10,6,c)+oval(14,-44,11,6,c)+oval(0,-54,6,10,c),
+  standing:(c,a) => line('M0 -3V-53M-10 -2H10',a,3)+`<path d="M-9 -65H9L16 -47H-16Z" fill="${c}"/>`,
+  lantern:(c,a) => line('M-6 -27Q0 -37 6 -27',a,2)+rect(-9,-27,18,24,a,3)+rect(-5,-23,10,15,c,4),
+  jar:(c,a) => rect(-5,-29,10,8,a)+oval(0,-13,13,13,c)+line('M-8 -13H8',a),
+  candle:(c,a) => rect(-8,-22,16,20,c)+oval(0,-27,3,6,a)+oval(0,-2,12,2,a),
+  pillow:(c,a) => rect(-16,-24,32,23,c,8)+line('M-9 -13Q0 -20 9 -13Q0 -6 -9 -13',a),
+  rug:(c,a) => oval(0,-2,29,13,c)+oval(0,-2,22,9,a)+oval(0,-2,15,6,c),
+  mirror:(c,a) => oval(0,0,15,20,c)+oval(0,0,11,16,a)+line('M-5 1L4 -8','#fff9ee',2),
+  print:(c,a) => rect(-16,-19,32,38,c)+rect(-12,-15,24,30,'#f8eedc',2)+oval(2,-4,6,6,a)+`<path d="M-12 12L-4 0L3 7L9 3L12 12Z" fill="${a}"/>`,
+  hanging:(c,a) => line('M0 -19L-11 3M0 -19L11 3',a)+rect(-14,2,28,12,c,4)+oval(-7,4,6,10,a)+oval(4,6,7,13,a),
+  bowl:(c,a) => oval(0,-13,16,5,a)+`<path d="M-16 -13Q-13 2 0 2Q13 2 16 -13Z" fill="${c}"/>`+line('M-11 -10H11',a),
+  screen:(c,a) => rect(-31,-62,62,59,a,3)+rect(-27,-58,54,49,c,3)+line('M-9 -58V-7M9 -58V-7M-27 -33H27',a,3),
+  fountain:(c,a) => oval(0,-6,25,8,c)+oval(0,-8,18,5,a)+rect(-5,-31,10,22,c)+line('M0 -32Q14 -36 16 -14M0 -32Q-14 -36 -16 -14',a,3)
+};
+const additions = [
+  ['oak-chair','참나무 의자','floor',[1,1],0,2,'chair','#bd885c','#e0b887'],
+  ['bamboo-bench','대나무 벤치','floor',[2,1],0,2,'bench','#bbaf6a','#7b734b'],
+  ['wood-bookcase','자작나무 책장','floor',[2,1],0,3,'tall','#ad7954','#e6c195'],
+  ['olive','올리브나무','floor',[1,1],0,2,'plant','#788857','#bca288'],
+  ['ivy','벽걸이 아이비','wall',null,0,2,'hanging','#af7a56','#688d59'],
+  ['brick-sofa','벽돌빛 소파','floor',[2,1],1,3,'sofa','#a74f41','#d68a71'],
+  ['amber-lamp','호박빛 장스탠드','floor',[1,1],1,2,'standing','#edb865','#826347'],
+  ['red-lantern','붉은 랜턴','top',null,1,2,'lantern','#ffd88d','#aa5a47'],
+  ['peach-candle','복숭아빛 초','top',null,1,1,'candle','#e2a18a','#c67540'],
+  ['sun-print','노을 포스터','wall',null,1,2,'print','#9e6048','#d27654'],
+  ['clay-bed','흙빛 침대','floor',[2,2],2,3,'bed','#ac8162','#ead2af'],
+  ['rattan-cabinet','라탄 수납장','floor',[2,1],2,2,'cabinet','#9f7657','#d7af7e'],
+  ['oat-rug','오트밀 원형 러그','floor',[2,2],2,3,'rug','#c5aa88','#e6d0a7'],
+  ['cream-cushion','크림색 방석','floor',[1,1],2,1,'pillow','#d9bea0','#a78e73'],
+  ['stone-bowl','돌빛 도자기','top',null,2,2,'bowl','#9e8d72','#c9bda3'],
+  ['silver-mirror','은테 거울','wall',null,3,2,'mirror','#839292','#c8dce0'],
+  ['steel-cabinet','스틸 캐비닛','floor',[2,1],3,3,'cabinet','#64777c','#a6b8b9'],
+  ['chrome-chair','크롬 의자','floor',[1,1],3,2,'chair','#a4b4b6','#dadcce'],
+  ['white-lamp','백색 플로어램프','floor',[1,1],3,2,'standing','#fff1cc','#849192'],
+  ['metal-bowl','은빛 트레이','top',null,3,1,'bowl','#8da2a7','#d4e0df'],
+  ['blue-sofa','물빛 소파','floor',[2,1],4,3,'sofa','#557b94','#8eabbc'],
+  ['wave-print','파도 그림','wall',null,4,2,'print','#5b798a','#6c9eae'],
+  ['glass-vase','푸른 유리병','top',null,4,2,'jar','#659ba8','#b7d3cd'],
+  ['ink-screen','남색 파티션','floor',[2,1],4,2,'screen','#64879a','#405d6c'],
+  ['fountain','작은 분수','floor',[1,1],4,2,'fountain','#819da1','#c1e3e4']
+];
+for (const item of Object.values(items)) {
+  item.dimensions = item.size ? [item.size,1] : null;
+  if (item.place === 'wall') item.art = `<g transform="translate(0 12)">${item.art}</g>`;
+}
+for (const [id,name,place,dimensions,element,value,shape,color,accent] of additions) {
+  items[id] = {
+    name,place,dimensions,art:art[shape](color,accent),
+    score:elements.map((_,index) => index === element ? value : 0)
+  };
+}
+const $ = id => document.getElementById(id);
+const catalog = Object.keys(items);
+const saveKey = 'ohaeng-room-puzzle-v2';
+const defaults = () => ({rooms:houses.map(() => []),completed:[]});
+let saved = defaults();
+try {
+  const stored = JSON.parse(localStorage.getItem(saveKey));
+  if (stored?.rooms?.length === houses.length && stored.rooms.every(Array.isArray) && Array.isArray(stored.completed)) {
+    saved = stored;
+  } else {
+    const previous = JSON.parse(localStorage.getItem('ohaeng-room-puzzle-v1'));
+    for (const [oldIndex,newIndex] of [[0,0],[1,2]]) {
+      const room = previous?.rooms?.[oldIndex];
+      if (!Array.isArray(room)) continue;
+      for (const entry of room.toSorted((a,b) => Number(b.id==='shelf')-Number(a.id==='shelf'))) {
+        if (!items[entry.id] || typeof entry.key !== 'string') continue;
+        const [surface,first,second] = entry.key.split('-');
+        const updated = {id:entry.id,turned:Boolean(entry.turned)};
+        if (surface === 'f') Object.assign(updated,{c:Number(first),r:Number(second)});
+        else updated.slot=Number(first);
+        if (surface === 'f' && (!Number.isInteger(updated.c) || !Number.isInteger(updated.r))) continue;
+        if (!validate(updated,saved.rooms[newIndex],houses[newIndex])) saved.rooms[newIndex].push(updated);
+      }
+    }
+  }
+} catch {}
+let houseIndex = 0;
+let placed = [];
+let history = [];
+let draft = null;
+let filter = -1;
+let drag = null;
+
+function persist() {
+  try { localStorage.setItem(saveKey,JSON.stringify(saved)); } catch {}
+}
+function house() { return houses[houseIndex]; }
+function openScreen(id) {
+  for (const screen of ['intro','homes','game']) $(screen).hidden = screen !== id;
+}
+function point(c,r,h) {
+  return {x:77 + c * (286/h.cols) - r * (45/h.rows), y:115 + c * (8/h.cols) + r * (139/h.rows)};
+}
+function polygon(points) { return points.map(p => `${p.x},${p.y}`).join(' '); }
+function tile(c,r,h) { return [[c,r],[c+1,r],[c+1,r+1],[c,r+1]].map(([x,y]) => point(x,y,h)); }
+function cells(entry) {
+  const dimensions = items[entry.id].dimensions;
+  if (!dimensions) return [];
+  const [w,d] = entry.turned ? [...dimensions].reverse() : dimensions;
+  return Array.from({length:w*d},(_,index) => [entry.c+index%w,entry.r+Math.floor(index/w)]);
+}
+function doorCell(c,r,h) { return c === h.door && r === 0; }
+function floorTargets(h) {
+  return Array.from({length:h.cols*h.rows},(_,index) => {
+    const c=index%h.cols, r=Math.floor(index/h.cols);
+    return {c,r,...point(c+.5,r+.5,h),label:`바닥 ${r+1}행 ${c+1}열`};
+  });
+}
+function wallTargets(h) {
+  return [{x:49,y:85},{x:264,y:85},{x:306,y:87}].map((p,slot) => ({...p,slot,label:`벽 자리 ${slot+1}`}));
+}
+function anchor(entry,list,h) {
+  const type = items[entry.id].place;
+  if (type === 'wall') return wallTargets(h)[entry.slot];
+  if (type === 'top') return topTargets(list,h)[entry.slot];
+  const tiles = cells(entry);
+  const middle = tiles.reduce((acc,[c,r]) => ({c:acc.c+c+.5,r:acc.r+r+.5}),{c:0,r:0});
+  return point(middle.c/tiles.length,middle.r/tiles.length,h);
+}
+function topTargets(list,h) {
+  const shelf = list.find(entry => entry.id === 'shelf');
+  if (!shelf) return [];
+  const center = anchor(shelf,list,h);
+  return [-15,15].map((offset,slot) => ({
+    x:center.x+offset,y:center.y-42,slot,label:`선반 자리 ${slot+1}`
+  }));
+}
+function targets(id,list,h) {
+  const type = items[id].place;
+  if (type === 'floor') return floorTargets(h);
+  return type === 'wall' ? wallTargets(h) : topTargets(list,h);
+}
+function rest(list = placed) {
+  return list.filter(entry => entry.id !== draft?.id);
+}
+function validate(entry,list,h) {
+  const type = items[entry.id].place;
+  if (type !== 'floor') {
+    if (!targets(entry.id,list,h)[entry.slot]) return '원목 선반을 먼저 놓아 주세요.';
+    if (list.some(other => items[other.id].place === type && other.slot === entry.slot)) return '이미 소품이 있어요.';
+    return '';
+  }
+  const occupied = cells(entry);
+  if (occupied.some(([c,r]) => c < 0 || r < 0 || c >= h.cols || r >= h.rows)) return '가구가 벽 밖으로 나가요.';
+  if (occupied.some(([c,r]) => doorCell(c,r,h))) return '문 앞은 비워 주세요.';
+  const taken = new Set(list.flatMap(cells).map(([c,r]) => `${c},${r}`));
+  return occupied.some(([c,r]) => taken.has(`${c},${r}`)) ? '다른 가구와 겹쳐요.' : '';
+}
+function scenery(h) {
+  const [backLeft,backRight,frontRight,frontLeft] = [[0,0],[h.cols,0],[h.cols,h.rows],[0,h.rows]].map(([c,r]) => point(c,r,h));
+  const ceiling = h.element === 1 ? 48 : 36;
+  const doorX = point(h.door+.5,0,h).x;
+  const planks = Array.from({length:12},(_,i) => {
+    const r = h.rows*(i+1)/13;
+    const a=point(0,r,h), b=point(h.cols,r,h);
+    return line(`M${a.x} ${a.y}L${b.x} ${b.y}`,'#7b573d24',1);
+  }).join('');
+  const windows = h.windows.map(x => {
+    const width = h.element === 3 ? 100 : 53;
+    return rect(x,58,width,44,'#fff7e4',2)+rect(x+4,62,width-8,36,h.outside,1)
+      +line(`M${x+width/2} 60V101M${x+2} 79H${x+width-2}`,'#fff7e4',2);
+  }).join('');
+  return `<rect width="400" height="278" fill="#eee6d7"/>
+    <polygon points="23,16 ${backLeft.x},${ceiling} ${backLeft.x},${backLeft.y} ${frontLeft.x},${frontLeft.y}" fill="${h.side}"/>
+    <polygon points="${backLeft.x},${ceiling} ${backRight.x},20 ${backRight.x},${backRight.y} ${backLeft.x},${backLeft.y}" fill="${h.wall}"/>
+    <polygon points="${polygon([backLeft,backRight,frontRight,frontLeft])}" fill="${h.floor}"/>
+    ${planks}${windows}
+    ${rect(doorX-12,65,24,57,'#9c775b',3)}${oval(doorX-6,96,1.5,1.5,'#f7deb4')}
+    <polygon points="${polygon(tile(h.door,0,h))}" fill="#fff4d2" opacity=".34"/>
+    ${h.element === 1 ? line('M78 45L359 29','#ac7968',5) : ''}
+    ${h.element === 4 ? line('M83 109L361 117','#8ca8b2',3) : ''}`;
+}
+function sprite(entry,list,h,ghost=false) {
+  const location = anchor(entry,list,h);
+  if (!location) return '';
+  const item = items[entry.id];
+  const transform = entry.turned ? 'skewY(-24) scale(.73 1)' : '';
+  return `<g transform="translate(${location.x} ${location.y})" opacity="${ghost ? '.68' : '1'}">
+    ${item.place === 'floor' ? oval(0,0,item.dimensions[0]>1 ? 27 : 13,4,'#4f392632') : ''}
+    <g transform="${transform}">${item.art}</g></g>`;
+}
+function scene(list,h,pending=null,active=false) {
+  const grid = active ? floorTargets(h).map(({c,r}) => {
+    const candidate = {id:draft.id,c,r,turned:draft.turned};
+    const blocked = items[draft.id].place === 'floor' && validate(candidate,rest(list),h);
+    const fill = doorCell(c,r,h) ? '#ad6a5050' : blocked ? '#64493527' : '#fffaf018';
+    return `<polygon points="${polygon(tile(c,r,h))}" fill="${fill}" stroke="#5c513851" stroke-width=".8"/>`;
+  }).join('') : '';
+  const footprint = pending ? cells(pending).map(([c,r]) => {
+    const valid = !validate(pending,rest(list),h);
+    return `<polygon points="${polygon(tile(c,r,h))}" fill="${valid ? '#35764c65' : '#bd4d426a'}" stroke="${valid ? '#286544' : '#a34234'}" stroke-width="2"/>`;
+  }).join('') : '';
+  const spots = active && items[draft.id].place !== 'floor' ? targets(draft.id,rest(list),h).map(p => {
+    const candidate = {id:draft.id,slot:p.slot};
+    const bad = validate(candidate,rest(list),h);
+    return `<circle cx="${p.x}" cy="${p.y}" r="11" fill="${bad ? '#b5534e88' : '#f5fae2ba'}" stroke="${pending?.slot === p.slot ? '#2e7c49' : '#6b8062'}" stroke-width="2"/>`;
+  }).join('') : '';
+  const visible = list.filter(entry => entry.id !== (active && draft.moving ? draft.id : null)
+    && !(active && draft.moving && draft.id === 'shelf' && items[entry.id].place === 'top'));
+  const supporting = pending?.id === 'shelf' && draft?.moving ? [...visible,pending] : visible;
+  const shadows = pending?.id === 'shelf' && draft?.moving
+    ? list.filter(entry => items[entry.id].place === 'top').map(entry => sprite(entry,supporting,h,true)).join('') : '';
+  const layer = entry => ['wall','floor','top'].indexOf(items[entry.id].place);
+  const furniture = visible.toSorted((a,b) => layer(a)-layer(b) || anchor(a,list,h).y-anchor(b,list,h).y)
+    .map(entry => sprite(entry,list,h)).join('');
+  return `<svg viewBox="0 0 400 278" aria-hidden="true">${scenery(h)}${grid}${footprint}${spots}${furniture}
+    ${pending ? sprite(pending,supporting,h,true) : ''}${shadows}</svg>`;
+}
+function renderHomes() {
+  const samples = ['plant','brick-sofa','rattan-cabinet','steel-cabinet','blue-sofa'];
+  $('home-list').innerHTML = houses.map((h,i) => `<button class="home-card" data-house="${i}">
+    <span class="board" aria-hidden="true">${scene([{id:samples[i],c:1,r:1}],h)}</span>
+    <b>${elements[i][0]} · ${h.name}${saved.completed.includes(i) ? ' ✓' : ''}</b>
+    <small>${h.layout}${saved.rooms[i].length ? ' · 이어서' : ''}</small></button>`).join('');
+}
+function openHouse(index) {
+  houseIndex=index;
+  placed=saved.rooms[index];
+  history=[];
+  filter=-1;
+  draft=null;
+  $('stage-name').textContent=house().name;
+  openScreen('game');
+  $('tray').scrollLeft=0;
+  renderAll();
+  $('back').focus();
+}
+function total(list) {
+  return elements.map((_,index) => list.reduce((sum,entry) => sum+items[entry.id].score[index],0));
+}
+function renderGoals() {
+  const current=total(placed);
+  const next=draft?.candidate && !draft.error && !draft.moving ? total([...placed,draft.candidate]) : current;
+  $('goals').innerHTML=elements.map(([name,color],i) => {
+    const [low,high]=house().goals[i], value=current[i];
+    return `<button class="gauge" data-element="${i}" aria-label="${name} ${value}점, 목표 ${low}에서 ${high}점">
+      <small><i style="--element:${color}"></i>${name} ${low}–${high}</small>
+      <b class="${value>high?'over':value>=low?'met':''}">${value}${next[i]===value?'':`→${next[i]}`}</b></button>`;
+  }).join('');
+}
+function hit(p,attribute,label,width=34,height=34) {
+  return `<button class="hit" ${attribute} style="left:${p.x/4}%;top:${p.y/278*100}%;--w:${width/4}%;--h:${height/278*100}%" aria-label="${label}"></button>`;
+}
+function renderBoard() {
+  const h=house(), pending=draft?.candidate;
+  let hits='';
+  if (draft) {
+    hits=targets(draft.id,rest(),h).map(p => hit(p,`data-target="${p.slot ?? `${p.c},${p.r}`}"`,p.label,29,29)).join('');
+  } else {
+    const drawOrder = placed.toSorted((a,b) => {
+      const layer = entry => ['wall','floor','top'].indexOf(items[entry.id].place);
+      return layer(a)-layer(b) || anchor(a,placed,h).y-anchor(b,placed,h).y;
+    });
+    hits=drawOrder.map(entry => {
+      const p=anchor(entry,placed,h), type=items[entry.id].place;
+      const rise=type==='floor'?14:type==='top'?7:0;
+      const width=type==='top'?28:items[entry.id].dimensions?.[0]>1?62:37;
+      return hit({...p,y:p.y-rise},`data-placed="${entry.id}"`,`${items[entry.id].name} 옮기기`,width,type==='floor'?42:30);
+    }).join('');
+  }
+  let check='';
+  if (pending && !draft.error && !drag?.moved) {
+    const p=anchor(pending,rest(),h);
+    const x=Math.min(371,Math.max(28,p.x+27));
+    const y=Math.min(247,Math.max(29,p.y+20));
+    check=`<button class="confirm" id="confirm" style="left:${x/4}%;top:${y/278*100}%" aria-label="이 위치에 배치 확정">✓</button>`;
+  }
+  $('room').innerHTML=scene(placed,h,pending,Boolean(draft))+ `<div class="hits">${hits}</div>`+check;
+}
+function thumb(id) {
+  return `<svg viewBox="-39 -70 78 92" aria-hidden="true">${items[id].art}</svg>`;
+}
+function renderTray() {
+  const used=new Set(placed.map(entry => entry.id));
+  const scroll=$('tray').scrollLeft;
+  $('filters').innerHTML=[-1,0,1,2,3,4].map(i => `<button class="filter" data-filter="${i}" aria-pressed="${i===filter}">${i<0?'전체':elements[i][0]}</button>`).join('');
+  const ranked=catalog.filter(id => filter<0 || items[id].score[filter]).toSorted((a,b) =>
+    Number(used.has(a))-Number(used.has(b)) || items[b].score[house().element]-items[a].score[house().element]);
+  $('tray').innerHTML=ranked.map(id => {
+    const item=items[id], i=item.score.findIndex(Boolean);
+    return `<button class="item" data-item="${id}" title="${item.name} · ${item.score.map((n,index)=>n?`${elements[index][0]} +${n}`:'').filter(Boolean).join(' / ')}" aria-pressed="${draft?.id===id}" ${used.has(id)?'disabled':''}>
+      <i style="--dot:${elements[i][1]}"></i>${thumb(id)}<span>${item.name}</span></button>`;
+  }).join('');
+  $('tray').scrollLeft=scroll;
+}
+function renderEdit(message) {
+  const item=items[draft?.id];
+  const status=message ?? draft?.error ?? '';
+  const missingShelf=item?.place==='top' && !placed.some(entry=>entry.id==='shelf');
+  const hint=status || (missingShelf ? '원목 선반을 먼저 놓아 주세요.' : draft ? item.name : '가구를 방 안으로 끌어 보세요.');
+  if ($('status').textContent!==hint) $('status').textContent=hint;
+  $('rotate').hidden=!item?.dimensions || item.dimensions[0]===item.dimensions[1];
+  $('remove').hidden=!draft?.moving;
+  $('cancel').hidden=!draft;
+  $('undo').disabled=!history.length;
+}
+function renderPreview(message) {
+  renderBoard();
+  renderGoals();
+  renderEdit(message);
+}
+function renderAll(message) { renderPreview(message);renderTray(); }
+function commit(next,message) {
+  history.push(placed);
+  placed=next;
+  saved.rooms[houseIndex]=next;
+  persist();
+  draft=null;
+  renderAll(message);
+}
+function begin(id,moving) {
+  const existing=moving && placed.find(entry=>entry.id===id);
+  draft={id,moving,turned:Boolean(existing?.turned),candidate:existing || null,error:''};
+}
+function setCandidate(p) {
+  if (!p) {
+    draft.candidate=null;
+    draft.error='';
+    return;
+  }
+  draft.candidate={id:draft.id,c:p.c,r:p.r,slot:p.slot,turned:draft.turned};
+  draft.error=validate(draft.candidate,rest(),house());
+}
+function pointFromPointer(event) {
+  const bounds=$('room').getBoundingClientRect();
+  const x=(event.clientX-bounds.left)/bounds.width*400-(drag?.offsetX ?? 0);
+  const y=(event.clientY-bounds.top)/bounds.height*278-(drag?.offsetY ?? 0);
+  if (x<0 || x>400 || y<0 || y>278) return null;
+  const type=items[draft.id].place;
+  const candidates=targets(draft.id,rest(),house());
+  const metric=p => ((p.x-x)/(type==='floor'?36:20))**2+((p.y-y)/(type==='floor'?27:24))**2;
+  const nearest=candidates.reduce((best,p)=>!best || metric(p)<metric(best)?p:best,null);
+  return nearest && metric(nearest)<=1.1 ? nearest : null;
+}
+function trackPointer(event) {
+  setCandidate(pointFromPointer(event));
+  renderPreview();
+  const floating=$('float');
+  floating.hidden=Boolean(draft.candidate);
+  floating.style.left=`${event.clientX}px`;
+  floating.style.top=`${event.clientY}px`;
+}
+$('app').addEventListener('pointerdown',event => {
+  if (!event.isPrimary || event.button!==0 || drag) return;
+  const source=event.target.closest('[data-item]:not(:disabled),[data-placed],[data-target]');
+  if (!source) return;
+  drag={pointer:event.pointerId,x:event.clientX,y:event.clientY,source,previous:draft ? {...draft} : null,moved:false};
+});
+$('app').addEventListener('pointermove',event => {
+  if (drag?.pointer!==event.pointerId) return;
+  const dx=event.clientX-drag.x, dy=event.clientY-drag.y;
+  if (!drag.moved && Math.hypot(dx,dy)<7) return;
+  if (!drag.moved) {
+    const {item,placed:existing}=drag.source.dataset;
+    drag.scrolling=Boolean(item && event.pointerType==='touch' && Math.abs(dx)>Math.abs(dy)*1.35);
+    drag.scrollStart=$('tray').scrollLeft;
+    drag.moved=true;
+    $('app').setPointerCapture(event.pointerId);
+    if (drag.scrolling) {
+      $('tray').scrollLeft=drag.scrollStart-dx;
+      return;
+    }
+    if (item || existing) begin(item ?? existing,Boolean(existing));
+    if (!draft) return;
+    if (existing) {
+      const entry=draft.candidate;
+      const origin=items[existing].place==='floor' ? point(entry.c+.5,entry.r+.5,house()) : anchor(entry,placed,house());
+      const bounds=$('room').getBoundingClientRect();
+      drag.offsetX=(drag.x-bounds.left)/bounds.width*400-origin.x;
+      drag.offsetY=(drag.y-bounds.top)/bounds.height*278-origin.y;
+    }
+    $('float').innerHTML=thumb(draft.id);
+  }
+  if (drag.scrolling) {
+    $('tray').scrollLeft=drag.scrollStart-dx;
+    return;
+  }
+  trackPointer(event);
+});
+function endPointer(event,cancelled) {
+  if (drag?.pointer!==event.pointerId) return;
+  const {previous,moved,scrolling}=drag;
+  if (moved && !scrolling && !cancelled) setCandidate(pointFromPointer(event));
+  drag=null;
+  $('float').hidden=true;
+  if (!moved || scrolling) return;
+  if (cancelled || (draft.moving && !draft.candidate)) draft=previous;
+  renderAll();
+}
+$('app').addEventListener('pointerup',event => endPointer(event,false));
+$('app').addEventListener('pointercancel',event => endPointer(event,true));
+$('room').addEventListener('click',event => {
+  if (event.target.closest('#confirm') && draft?.candidate && !draft.error) {
+    commit([...rest(),draft.candidate],'');
+    return;
+  }
+  const existing=event.target.closest('[data-placed]')?.dataset.placed;
+  const key=event.target.closest('[data-target]')?.dataset.target;
+  if (existing) begin(existing,true);
+  else if (key!==undefined && draft) {
+    setCandidate(targets(draft.id,rest(),house()).find(p=>String(p.slot ?? `${p.c},${p.r}`)===key));
+  } else return;
+  renderPreview();
+  if (event.detail===0) ($('confirm') ?? $('room').querySelector('.hit'))?.focus();
+});
+$('tray').addEventListener('click',event => {
+  const id=event.target.closest('[data-item]:not(:disabled)')?.dataset.item;
+  if (!id) return;
+  begin(id,false);
+  renderAll();
+  if (event.detail===0) $('room').querySelector('.hit')?.focus();
+});
+$('filters').addEventListener('click',event => {
+  const filterButton=event.target.closest('[data-filter]');
+  if (!filterButton) return;
+  filter=Number(filterButton.dataset.filter);
+  $('tray').scrollLeft=0;
+  renderTray();
+  $('filters').querySelector('[aria-pressed=true]')?.focus();
+});
+for (const [id,direction] of [['prev',-1],['next',1]]) {
+  $(id).onclick=()=> $('tray').scrollBy({left:direction*250});
+}
+$('rotate').onclick=()=>{
+  if (!draft) return;
+  draft.turned=!draft.turned;
+  if (draft.candidate) setCandidate(draft.candidate);
+  renderPreview();
+};
+$('remove').onclick=()=>{
+  if (!draft?.moving) return;
+  const next=rest().filter(entry=>draft.id!=='shelf' || items[entry.id].place!=='top');
+  commit(next,'가구를 뺐어요.');
+};
+$('cancel').onclick=()=>{draft=null;renderAll();};
+$('undo').onclick=()=>{
+  if (!history.length) return;
+  placed=history.pop();
+  saved.rooms[houseIndex]=placed;
+  persist();
+  draft=null;
+  renderAll('되돌렸어요.');
+};
+function modal(title,body) {
+  $('dialog').innerHTML=`<h2 id="dialog-title">${title}</h2>${body}<button class="btn" id="close-dialog">닫기</button>`;
+  $('dialog').showModal();
+  $('close-dialog').onclick=()=> $('dialog').close();
+}
+$('help').onclick=()=>modal('꾸미는 방법','<p>가구를 방에 끌고 초록색 ✓를 누르세요. 초록 그림자는 배치할 수 있는 자리, 붉은 그림자는 가구가 겹치거나 경계를 벗어난 자리예요.</p><ul><li>놓은 가구도 끌어서 옮길 수 있어요.</li><li>선반 위 소품은 원목 선반을 놓은 뒤 올릴 수 있어요.</li><li>아이템을 누르고 원하는 자리를 눌러도 배치할 수 있어요.</li></ul>');
+$('goals').addEventListener('click',event=>{
+  const i=event.target.closest('[data-element]')?.dataset.element;
+  if (i===undefined) return;
+  const rows=placed.filter(entry=>items[entry.id].score[i]).map(entry=>`<li>${items[entry.id].name} +${items[entry.id].score[i]}</li>`).join('');
+  modal(`${elements[i][0]} · ${total(placed)[i]}점`,`<p>목표 ${house().goals[i].join('–')}점</p>${rows?`<ul>${rows}</ul>`:'<p>해당 오행의 가구를 놓으면 여기에 보여요.</p>'}`);
+});
+$('check').onclick=()=>{
+  const values=total(placed);
+  const checks=house().goals.map(([low,high],i)=>({ok:values[i]>=low && values[i]<=high,
+    label:`${elements[i][0]} ${values[i]}점 · 목표 ${low}–${high}`}));
+  const win=checks.every(check=>check.ok);
+  if (win && !saved.completed.includes(houseIndex)) {
+    saved.completed.push(houseIndex);
+    persist();
+  }
+  modal(win?'공간 완성!':'조금 더 꾸며 볼까요?',`<div class="board">${scene(placed,house())}</div><ul>${checks.map(check=>`<li>${check.ok?'✓':'○'} ${check.label}</li>`).join('')}</ul>`);
+};
+function showHomes() { renderHomes();openScreen('homes');$('home-list').querySelector('button').focus(); }
+$('start').onclick=showHomes;
+$('back').onclick=showHomes;
+$('intro-back').onclick=()=>{openScreen('intro');$('start').focus();};
+$('home-list').addEventListener('click',event=>{
+  const index=event.target.closest('[data-house]')?.dataset.house;
+  if (index!==undefined) openHouse(Number(index));
+});
+$('intro-art').innerHTML=scene([
+  {id:'shelf',c:2,r:0},{id:'plant',c:0,r:1},{id:'brick-sofa',c:1,r:2},
+  {id:'table',c:3,r:2},{id:'picture',slot:1},{id:'lamp',slot:0},{id:'vase',slot:1}
+],houses[0]);
+$('intro-art').onclick=showHomes;
+</script>
+</body>
+</html>
